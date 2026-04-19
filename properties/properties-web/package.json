@@ -1,0 +1,24 @@
+{
+  "name": "@analizza/properties-web",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@analizza/properties-ui": "workspace:*",
+    "@analizza/shared-front": "file:../../shared-front",
+    "next": "16.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.9.0"
+  }
+}

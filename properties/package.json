@@ -1,0 +1,11 @@
+{
+  "name": "@analizza/properties",
+  "private": true,
+  "packageManager": "pnpm@10.9.0",
+  "scripts": {
+    "web": "pnpm --dir properties-web dev",
+    "mobile": "pnpm --dir properties-mobile start",
+    "build:web": "pnpm --dir properties-web build",
+    "build:mobile": "pnpm --dir properties-mobile export"
+  }
+}

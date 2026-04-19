@@ -1,0 +1,27 @@
+{
+  "name": "@analizza/properties-mobile",
+  "private": true,
+  "version": "0.0.1",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@analizza/properties-ui": "workspace:*",
+    "@analizza/shared-front": "file:../../shared-front",
+    "expo": "~55.0.0",
+    "expo-router": "~55.0.5",
+    "react": "19.2.0",
+    "react-native": "0.83.0",
+    "react-native-safe-area-context": "5.0.0",
+    "react-native-screens": "~4.16.0"
+  },
+  "devDependencies": {
+    "babel-preset-expo": "~55.0.5",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.9.0"
+  }
+}

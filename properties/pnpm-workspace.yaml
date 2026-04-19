@@ -1,0 +1,4 @@
+packages:
+  - "properties-web"
+  - "properties-mobile"
+  - "properties-ui"
