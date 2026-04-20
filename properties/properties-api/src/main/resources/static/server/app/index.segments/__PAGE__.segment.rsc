@@ -1,5 +1,0 @@
-1:"$Sreact.fragment"
-2:I[67333,["/_next/static/chunks/309248894e07f83a.js"],"OutletBoundary"]
-3:"$Sreact.suspense"
-0:{"buildId":"IMwFTjTEHCsUKXTYGi5Ko","rsc":["$","$1","c",{"children":[["$","main",null,{"children":[["$","h1",null,{"children":"Analizza Properties"}],["$","p",null,{"children":"Frontend web inicial em Next.js."}]]}],null,["$","$L2",null,{"children":["$","$3",null,{"name":"Next.MetadataOutlet","children":"$@4"}]}]]}],"loading":null,"isPartial":false}
-4:null
