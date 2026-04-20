@@ -15,4 +15,4 @@ node_modules/
 .vercel/
 dist/
 coverage/
-**/resources/static/
+**/resources/static/**
