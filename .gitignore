@@ -4,6 +4,7 @@ out/
 .idea/
 .codex
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.iml
 *.log
 *.class
