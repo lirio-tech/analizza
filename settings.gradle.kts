@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "analizza"
 
-include("properties:properties-api", "properties:properties-core", "shared-libs")
+include("properties:properties-api", "properties:properties-core", "properties:properties-async", "shared-libs")

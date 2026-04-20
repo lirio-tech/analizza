@@ -1,0 +1,161 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  REGISTRY: docker.io
+  DOCKER_REGISTRY_USERNAME: diegolirio
+  PROJECT_NAME: analizza
+
+jobs:
+  discover-apps:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.discover.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Discover backend applications
+        id: discover
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          apps_json="[]"
+          while IFS= read -r app_file; do
+            if ! grep -q "@SpringBootApplication" "$app_file"; then
+              continue
+            fi
+
+            app_dir=$(dirname "$(dirname "$(dirname "$(dirname "$(dirname "$app_file")")")")")
+            app_name=$(basename "$app_dir")
+            domain=$(basename "$(dirname "$app_dir")")
+            app_type=${app_name#"$domain-"}
+            module_path=":$domain:$app_name"
+
+            has_web="false"
+            if [[ "$app_type" == "api" && -d "$domain/$domain-web" ]]; then
+              has_web="true"
+            fi
+
+            apps_json=$(echo "$apps_json" | jq --arg appDir "$app_dir" --arg appName "$app_name" --arg domain "$domain" --arg appType "$app_type" --arg modulePath "$module_path" --arg hasWeb "$has_web" '. + [{appDir:$appDir, appName:$appName, domain:$domain, appType:$appType, modulePath:$modulePath, hasWeb:$hasWeb}]')
+          done < <(find . -name "*Application.kt" -path "*/src/main/kotlin/*" -print)
+
+          matrix=$(jq -cn --argjson include "$apps_json" '{include: $include}')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+
+  build-and-push-app:
+    needs: discover-apps
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Build Next.js only for API modules that have corresponding web app
+      - name: Setup Node.js
+        if: ${{ matrix.hasWeb == 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        if: ${{ matrix.hasWeb == 'true' }}
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.9.0
+
+      - name: Install dependencies (domain workspace)
+        if: ${{ matrix.hasWeb == 'true' }}
+        working-directory: ${{ matrix.domain }}
+        run: pnpm install
+
+      - name: Build Next.js web
+        if: ${{ matrix.hasWeb == 'true' }}
+        working-directory: ${{ matrix.domain }}/${{ matrix.domain }}-web
+        run: pnpm run build
+
+      - name: Copy Next.js dist to API resources
+        if: ${{ matrix.hasWeb == 'true' }}
+        run: |
+          mkdir -p ${{ matrix.appDir }}/src/main/resources/static
+          cp -r ${{ matrix.domain }}/${{ matrix.domain }}-web/out/. ${{ matrix.appDir }}/src/main/resources/static/ 2>/dev/null || true
+          cp -r ${{ matrix.domain }}/${{ matrix.domain }}-web/public/. ${{ matrix.appDir }}/src/main/resources/static/ 2>/dev/null || true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Build backend module with Gradle
+        run: ./gradlew ${{ matrix.modulePath }}:clean ${{ matrix.modulePath }}:build -x test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.appDir }}/Dockerfile
+          push: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+          tags: ${{ env.DOCKER_REGISTRY_USERNAME }}/${{ env.PROJECT_NAME }}-${{ matrix.domain }}-${{ matrix.appType }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  test-backend:
+    runs-on: ubuntu-latest
+    needs: discover-apps
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Run backend tests
+        run: ./gradlew test
+
+  deploy-app:
+    runs-on: ubuntu-latest
+    needs: [discover-apps, build-and-push-app, test-backend]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.discover-apps.outputs.matrix) }}
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy app notification
+        run: |
+          echo "Deploying ${{ env.PROJECT_NAME }}-${{ matrix.domain }}-${{ matrix.appType }}:latest to target environment"
+          echo "Configure your deployment target here"
