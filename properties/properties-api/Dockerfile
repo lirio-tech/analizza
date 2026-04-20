@@ -8,8 +8,10 @@ COPY gradle.properties .
 COPY settings.gradle.kts .
 COPY build.gradle.kts .
 COPY gradlew .
+COPY shared-libs ./shared-libs
 COPY properties/properties-core ./properties/properties-core
 COPY properties/properties-api ./properties/properties-api
+COPY properties/properties-async ./properties/properties-async
 
 RUN chmod +x gradlew && ./gradlew :properties:properties-api:build -x test
 
